@@ -23,23 +23,33 @@ import androidx.compose.ui.unit.sp
 import com.example.dilemario.model.Dilema
 
 // --------------------------------------------------------
-// PANTALLA INDIVIDUAL
+// PANTALLA INDIVIDUAL — COMPLETA + ESTADO PERSISTENTE
 // --------------------------------------------------------
 @Composable
 fun DilemaScreenSingle(
     dilema: Dilema,
-    onRespondido: () -> Unit
+    respuestaGuardada: String?,               // ← viene del pager
+    onRespondido: (String) -> Unit            // ← reportamos cuando selecciona
 ) {
 
-    var selectedOption by remember { mutableStateOf<String?>(null) }
+    // Estado inicial = lo guardado
+    var selectedOption by remember { mutableStateOf(respuestaGuardada) }
 
-    // 🔥 Cuando responde → avisamos al Pager que ya puede bajar
-    LaunchedEffect(selectedOption) {
-        if (selectedOption != null) {
-            onRespondido()
+    // Si el pager nos manda una respuesta que antes no estaba, sincronizamos
+    LaunchedEffect(respuestaGuardada) {
+        if (respuestaGuardada != null && selectedOption == null) {
+            selectedOption = respuestaGuardada
         }
     }
 
+    // Cuando responde por PRIMERA VEZ → reportamos al Pager
+    LaunchedEffect(selectedOption) {
+        if (selectedOption != null && respuestaGuardada == null) {
+            onRespondido(selectedOption!!)
+        }
+    }
+
+    // Cálculo de porcentajes
     val total = dilema.votosOpcionA + dilema.votosOpcionB
     val percentA = if (total > 0) (dilema.votosOpcionA * 100f) / total else 0f
     val percentB = if (total > 0) (dilema.votosOpcionB * 100f) / total else 0f
@@ -69,7 +79,9 @@ fun DilemaScreenSingle(
 
         Spacer(modifier = Modifier.height(40.dp))
 
+        // -------------------------------------------------------
         // OPCIÓN A
+        // -------------------------------------------------------
         AnswerOption(
             text = dilema.opcionA,
             isSelected = selectedOption == "A",
@@ -79,7 +91,9 @@ fun DilemaScreenSingle(
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        // -------------------------------------------------------
         // OPCIÓN B
+        // -------------------------------------------------------
         AnswerOption(
             text = dilema.opcionB,
             isSelected = selectedOption == "B",
@@ -89,7 +103,9 @@ fun DilemaScreenSingle(
 
         Spacer(modifier = Modifier.height(40.dp))
 
-        // RESULTADOS
+        // -------------------------------------------------------
+        // RESULTADOS — SIEMPRE SE MANTIENEN
+        // -------------------------------------------------------
         AnimatedVisibility(
             visible = selectedOption != null,
             enter = fadeIn() + slideInVertically(),
@@ -134,8 +150,8 @@ fun AnswerOption(
             )
             .alpha(alpha)
             .background(
-                if (isSelected) Color(0xFF4CAF50) else Color(0xFF303030),
-                RoundedCornerShape(22.dp)
+                color = if (isSelected) Color(0xFF4CAF50) else Color(0xFF303030),
+                shape = RoundedCornerShape(22.dp)
             )
             .clickable(enabled = !isDisabled) {
                 onClick()
@@ -155,6 +171,7 @@ fun SelectedResult(label: String, percentage: Float) {
 
     var animated by remember { mutableStateOf(0f) }
 
+    // Solo animar si es la primera vez que se ve
     LaunchedEffect(Unit) {
         animate(
             initialValue = 0f,
@@ -191,7 +208,7 @@ fun SelectedResult(label: String, percentage: Float) {
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Barra
+        // Barra de porcentaje
         Box(
             modifier = Modifier
                 .fillMaxWidth()

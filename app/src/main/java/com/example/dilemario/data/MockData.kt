@@ -1,12 +1,13 @@
 package com.example.dilemario.data
 
+import androidx.compose.runtime.mutableStateListOf
 import com.example.dilemario.model.Dilema
 
 object MockData {
-    val dilemas = listOf(
+    val dilemas = mutableStateListOf(
         Dilema(
             id = 1,
-            titulo = "titulo 1",
+            titulo = "El Dilema del Tren",
             descripcion = "¿Desviarías un tren para salvar a 5 personas aunque muera 1?",
             opcionA = "Desviar (salvar 5)",
             opcionB = "No intervenir (salvar 1)",
@@ -16,11 +17,11 @@ object MockData {
         ),
         Dilema(
             id = 2,
-            titulo = "titulo 2",
+            titulo = "La Mentira Compasiva",
             descripcion = "¿Mentirías para evitar que un ser querido sufra?",
             opcionA = "Sí, por empatía",
             opcionB = "No, siempre la verdad",
-            categoria = "Vida diaria",
+            categoria = "Ética",
             votosOpcionA = 230,
             votosOpcionB = 180
         )

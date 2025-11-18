@@ -9,7 +9,7 @@ plugins {
 
 android {
     namespace = "com.example.dilemario"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.dilemario"
@@ -42,8 +42,9 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.navigation:navigation-compose:2.8.3")
     implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material3:material3:1.2.0")
     implementation("androidx.activity:activity-compose:1.9.3")
+    implementation(libs.androidx.foundation)
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.foundation:foundation:1.6.0")
