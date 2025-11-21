@@ -1,17 +1,24 @@
 package com.example.dilemario.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.dilemario.data.UserPreferences
 import com.example.dilemario.ui.components.BottomNavigationBar
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,13 +35,37 @@ fun CreateDilemmaScreen(navController: NavController) {
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val prefs = remember { UserPreferences(context) }
+
+    // Obtener el ID del usuario desde DataStore
+    var userId by remember { mutableStateOf<Int?>(null) }
+    LaunchedEffect(Unit) {
+        val token = prefs.token.firstOrNull()
+        token?.let {
+            try {
+                val parts = it.split(".")
+                if (parts.size >= 2) {
+                    val payload = parts[1]
+                    val decoded = String(android.util.Base64.decode(payload, android.util.Base64.URL_SAFE))
+                    val json = org.json.JSONObject(decoded)
+                    userId = json.optInt("id", -1)
+                    Log.d("CreateDilemmaScreen", "User ID: $userId")
+
+                    // Establecer token en Retrofit
+                    RetrofitClient.setToken(it)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
 
     Scaffold(
         containerColor = Color(0xFF202020),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = { BottomNavigationBar(navController) }
     ) { paddingValues ->
-
         Column(
             modifier = Modifier
                 .padding(paddingValues)
@@ -134,8 +165,33 @@ fun CreateDilemmaScreen(navController: NavController) {
                         return@Button
                     }
 
-                    scope.launch {
-                        snackbarHostState.showSnackbar("Dilema creado ✅")
+                    // -----------------------------
+                    // LLAMAR API PARA CREAR DILEMA
+                    // -----------------------------
+                    userId?.let { id ->
+                        scope.launch {
+                            try {
+                                val body = mapOf(
+                                    "titulo" to titulo.text,
+                                    "descripcion" to descripcion.text,
+                                    "opcion_a" to opcionA.text,
+                                    "opcion_b" to opcionB.text,
+                                    "categoria" to categoria.lowercase(),
+                                    "creado_por" to id.toString()
+                                )
+                                val response = RetrofitClient.api.crearDilema(body)
+                                if (response.success) {
+                                    navController.navigate("adminDilemas") {
+                                        popUpTo("crearDilema") { inclusive = true }
+                                    }
+                                } else {
+                                    snackbarHostState.showSnackbar("Error al crear dilema")
+                                }
+                            } catch (e: Exception) {
+                                Log.e("CreateDilemmaScreen", "Error creando dilema", e)
+                                snackbarHostState.showSnackbar("Error de conexión")
+                            }
+                        }
                     }
                 },
                 colors = ButtonDefaults.buttonColors(

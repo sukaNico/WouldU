@@ -4,6 +4,7 @@ import okhttp3.Request
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import com.example.dilemario.data.ApiService
+import okhttp3.logging.HttpLoggingInterceptor
 
 object RetrofitClient {
 
@@ -15,9 +16,13 @@ object RetrofitClient {
         token = jwt
     }
 
+    private val logging = HttpLoggingInterceptor().apply {
+        level = HttpLoggingInterceptor.Level.BODY;
+    }
     private val client = OkHttpClient.Builder()
-        .addInterceptor { chain: Interceptor.Chain ->
-            val original: Request = chain.request()
+        .addInterceptor(logging)
+        .addInterceptor { chain ->
+            val original = chain.request()
             val requestBuilder = original.newBuilder()
             token?.let {
                 requestBuilder.addHeader("Authorization", "Bearer $it")

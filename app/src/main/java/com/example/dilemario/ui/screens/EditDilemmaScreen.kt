@@ -1,5 +1,6 @@
 package com.example.dilemario.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -10,137 +11,150 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.dilemario.data.MockData
-import com.example.dilemario.model.Dilema
-import com.example.dilemario.ui.components.BottomNavigationBar
+import com.example.dilemario.data.DilemaApi
+import kotlinx.coroutines.launch
 
 @Composable
 fun EditDilemmaScreen(navController: NavController, dilemaId: Int) {
+    val scope = rememberCoroutineScope()
 
-    val dilema = MockData.dilemas.find { it.id == dilemaId }
+    var dilema by remember { mutableStateOf<DilemaApi?>(null) }
+    var cargando by remember { mutableStateOf(true) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
-    if (dilema == null) {
-        Text("Dilema no encontrado", color = Color.White)
+    // Campos editables
+    var titulo by remember { mutableStateOf("") }
+    var descripcion by remember { mutableStateOf("") }
+    var opcionA by remember { mutableStateOf("") }
+    var opcionB by remember { mutableStateOf("") }
+    var categoria by remember { mutableStateOf("") }
+
+    // -----------------------------
+    // CARGAR DILEMA DESDE API
+    // -----------------------------
+    LaunchedEffect(dilemaId) {
+        try {
+            val response = RetrofitClient.api.getDilema(dilemaId)
+            if (response.success) {
+                dilema = response.data
+                titulo = dilema?.titulo ?: ""
+                descripcion = dilema?.descripcion ?: ""
+                opcionA = dilema?.opcion_a ?: ""
+                opcionB = dilema?.opcion_b ?: ""
+                categoria = dilema?.categoria ?: ""
+            }
+        } catch (e: Exception) {
+            Log.e("EditDilemmaScreen", "Error cargando dilema", e)
+        } finally {
+            cargando = false
+        }
+    }
+
+    if (cargando) {
+        Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+            CircularProgressIndicator(color = Color(0xFF4CAF50))
+        }
         return
     }
 
-    var titulo by remember { mutableStateOf(dilema.titulo) }
-    var descripcion by remember { mutableStateOf(dilema.descripcion) }
-    var opcionA by remember { mutableStateOf(dilema.opcionA) }
-    var opcionB by remember { mutableStateOf(dilema.opcionB) }
-    var categoria by remember { mutableStateOf(dilema.categoria) }
-
-    var showDeleteDialog by remember { mutableStateOf(false) }
-
-    Scaffold(
-        containerColor = Color(0xFF202020),
-        bottomBar = { BottomNavigationBar(navController) }
-    ) { padding ->
-
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .padding(20.dp)
-                .verticalScroll(rememberScrollState())
-        ) {
-
-            Text(
-                text = "Editar Dilema",
-                color = Color.White,
-                fontSize = 28.sp,
-                modifier = Modifier.padding(bottom = 20.dp)
-            )
-
-            // -----------------------------
-            // CAMPOS
-            // -----------------------------
-
-            EditText(label = "Título", value = titulo, onChange = { titulo = it })
-            Spacer(Modifier.height(16.dp))
-
-            EditText(label = "Descripción", value = descripcion, onChange = { descripcion = it })
-            Spacer(Modifier.height(16.dp))
-
-            EditText(label = "Opción A", value = opcionA, onChange = { opcionA = it })
-            Spacer(Modifier.height(16.dp))
-
-            EditText(label = "Opción B", value = opcionB, onChange = { opcionB = it })
-            Spacer(Modifier.height(16.dp))
-
-            EditText(label = "Categoría", value = categoria, onChange = { categoria = it })
-            Spacer(Modifier.height(24.dp))
-
-            // -----------------------------
-            // BOTÓN GUARDAR
-            // -----------------------------
-            Button(
-                onClick = {
-                    dilema.titulo = titulo
-                    dilema.descripcion = descripcion
-                    dilema.opcionA = opcionA
-                    dilema.opcionB = opcionB
-                    dilema.categoria = categoria
-                    navController.popBackStack()
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4CAF50)
-                )
+    dilema?.let { d ->
+        Scaffold(
+            containerColor = Color(0xFF202020),
+            bottomBar = { /* Aquí podrías poner BottomNavigationBar si quieres */ }
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize()
+                    .padding(20.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
-                Text("Guardar Cambios")
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            // -----------------------------
-            // BOTÓN ELIMINAR
-            // -----------------------------
-            Button(
-                onClick = { showDeleteDialog = true },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFD32F2F)
+                Text(
+                    text = "Editar Dilema",
+                    color = Color.White,
+                    fontSize = 28.sp,
+                    modifier = Modifier.padding(bottom = 20.dp)
                 )
-            ) {
-                Text("Eliminar Dilema")
-            }
 
-            // -----------------------------
-            // DIÁLOGO CONFIRMACIÓN
-            // -----------------------------
-            if (showDeleteDialog) {
-                AlertDialog(
-                    onDismissRequest = { showDeleteDialog = false },
-                    title = {
-                        Text("¿Eliminar dilema?", color = Color.White)
-                    },
-                    text = {
-                        Text(
-                            "Esta acción no se puede deshacer.",
-                            color = Color.LightGray
-                        )
-                    },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                MockData.dilemas.remove(dilema)
-                                showDeleteDialog = false
+                EditText("Título", titulo) { titulo = it }
+                Spacer(Modifier.height(16.dp))
+                EditText("Descripción", descripcion) { descripcion = it }
+                Spacer(Modifier.height(16.dp))
+                EditText("Opción A", opcionA) { opcionA = it }
+                Spacer(Modifier.height(16.dp))
+                EditText("Opción B", opcionB) { opcionB = it }
+                Spacer(Modifier.height(16.dp))
+                EditText("Categoría", categoria) { categoria = it }
+                Spacer(Modifier.height(24.dp))
+
+                // -----------------------------
+                // GUARDAR CAMBIOS
+                // -----------------------------
+                Button(
+                    onClick = {
+                        scope.launch {
+                            try {
+                                RetrofitClient.api.actualizarDilema(
+                                    d.id,
+                                    mapOf(
+                                        "titulo" to titulo,
+                                        "descripcion" to descripcion,
+                                        "opcion_a" to opcionA,
+                                        "opcion_b" to opcionB,
+                                        "categoria" to categoria
+                                    )
+                                )
                                 navController.popBackStack()
+                            } catch (e: Exception) {
+                                Log.e("EditDilemmaScreen", "Error actualizando dilema", e)
                             }
-                        ) {
-                            Text("Eliminar", color = Color.Red)
                         }
                     },
-                    dismissButton = {
-                        TextButton(onClick = { showDeleteDialog = false }) {
-                            Text("Cancelar", color = Color.White)
-                        }
-                    },
-                    containerColor = Color(0xFF2C2C2C)
-                )
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                ) {
+                    Text("Guardar Cambios")
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // -----------------------------
+                // ELIMINAR DILEMA
+                // -----------------------------
+                Button(
+                    onClick = { showDeleteDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+                ) {
+                    Text("Eliminar Dilema")
+                }
+
+                if (showDeleteDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showDeleteDialog = false },
+                        title = { Text("¿Eliminar dilema?", color = Color.White) },
+                        text = { Text("Esta acción no se puede deshacer.", color = Color.LightGray) },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                scope.launch {
+                                    try {
+                                        RetrofitClient.api.eliminarDilema(d.id)
+                                        navController.popBackStack()
+                                    } catch (e: Exception) {
+                                        Log.e("EditDilemmaScreen", "Error eliminando dilema", e)
+                                    }
+                                }
+                                showDeleteDialog = false
+                            }) { Text("Eliminar", color = Color.Red) }
+                        },
+                        dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar", color = Color.White) } },
+                        containerColor = Color(0xFF2C2C2C)
+                    )
+                }
             }
         }
+    } ?: run {
+        Text("Dilema no encontrado", color = Color.White)
     }
 }
 

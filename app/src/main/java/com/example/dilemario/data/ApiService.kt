@@ -1,8 +1,11 @@
 package com.example.dilemario.data
 
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
+import retrofit2.http.Path
 
 // ----------------------------
 // REQUESTS / RESPONSES LOGIN
@@ -51,9 +54,33 @@ data class DilemaApi(
 
 data class DilemaListResponse(
     val success: Boolean,
+    val message: String?,
     val data: List<DilemaApi>
 )
 
+data class RespuestaDilemaResponse(
+    val success: Boolean,
+    val message: String,
+    val data: RespuestaData
+)
+
+data class RespuestaData(
+    val opcion_elegida: String,
+    val estadisticas: Estadisticas
+)
+
+data class Estadisticas(
+    val total_votos: Int,
+    val porcentaje_a: Int,
+    val porcentaje_b: Int,
+    val votos_a: Int,
+    val votos_b: Int
+)
+
+data class DilemaApiResponse(
+    val success: Boolean,
+    val data: DilemaApi
+)
 
 // ----------------------------
 // API SERVICE
@@ -66,8 +93,30 @@ interface ApiService {
         @Body request: LoginRequest
     ): LoginResponse
 
-
     @GET("api/dilemas/{userId}/unanswered")
-    suspend fun getDilemasUnanswered(@retrofit2.http.Path("userId") userId: Int): DilemaListResponse
+    suspend fun getDilemasUnanswered(@Path("userId") userId: Int): DilemaListResponse
 
+    @POST("api/dilemas/{id}/responder")
+    suspend fun responderDilema(
+        @Path("id") id: Int,
+        @Body body: Map<String, String>
+    ): RespuestaDilemaResponse
+
+    @GET("api/dilemas/user/{userId}")
+    suspend fun getDilemasUsuario(@Path("userId") userId: Int): DilemaListResponse
+
+    @GET("api/dilemas/{id}")
+    suspend fun getDilema(@Path("id") id: Int): DilemaApiResponse
+
+    @PUT("api/dilemas/{id}")
+    suspend fun actualizarDilema(@Path("id") id: Int, @Body body: Map<String, String>): DilemaApiResponse
+
+    @DELETE("api/dilemas/{id}")
+    suspend fun eliminarDilema(@Path("id") id: Int): DilemaApiResponse
+
+    // NUEVA FUNCIÓN → Crear un dilema
+    @POST("api/dilemas")
+    suspend fun crearDilema(
+        @Body body: Map<String, String> // cuerpo: titulo, descripcion, opcion_a, opcion_b, categoria, creado_por
+    ): DilemaApiResponse
 }

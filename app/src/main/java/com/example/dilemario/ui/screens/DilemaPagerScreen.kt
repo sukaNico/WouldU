@@ -3,9 +3,11 @@ package com.example.dilemario.ui.screens
 import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,6 +21,8 @@ import com.example.dilemario.data.DilemaApi
 import com.example.dilemario.data.UserPreferences
 import com.example.dilemario.model.Dilema
 import com.example.dilemario.ui.components.BottomNavigationBar
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -30,65 +34,84 @@ fun DilemaPagerScreen(navController: NavController, userId: Int) {
     val prefs: UserPreferences = remember { UserPreferences(context) }
     val apiService = RetrofitClient.api
 
-    // Estado de dilemas y carga
     var dilemas by remember { mutableStateOf<List<DilemaApi>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
+    var cargandoInicio by remember { mutableStateOf(true) }
+    var cargandoMas by remember { mutableStateOf(false) }
 
-    // Respuestas seleccionadas
     val respuestas = remember { mutableStateMapOf<Int, String?>() }
-
-    val pagerState = rememberPagerState(
-        initialPage = 0,
-        pageCount = { dilemas.size + 1 } // +1 para la página de carga
-    )
-
-    val puedeHacerScroll = derivedStateOf {
-        respuestas[pagerState.currentPage] != null || pagerState.currentPage == dilemas.size
-    }
-
+    val resultados = remember { mutableStateMapOf<Int, Pair<Float, Float>>() } // id -> (porcentajeA, porcentajeB)
+    val pagerState = rememberPagerState(initialPage = 0, pageCount = { dilemas.size })
     val scope = rememberCoroutineScope()
 
-    // -----------------------------
-    // CARGA DE DILEMAS DESDE API CON TOKEN
-    // -----------------------------
+    var ultimaPaginaCargada by remember { mutableStateOf(-1) }
+    var noHayMasDilemas by remember { mutableStateOf(false) }
+    var jobCargarMas: Job? by remember { mutableStateOf(null) }
+
+    // ---------------------------
+    // CARGA INICIAL
+    // ---------------------------
     LaunchedEffect(Unit) {
-        // Obtener token guardado
-        val userToken: String? = prefs.token.first()
+        val userToken = prefs.token.first()
         userToken?.let { RetrofitClient.setToken(it) }
 
         try {
             val response = apiService.getDilemasUnanswered(userId)
-            if (response.success) {
-                dilemas = response.data
-                dilemas.forEach { d ->
-                    Log.d("DilemaAPI", "Dilema recibido: ${d.titulo} (ID: ${d.id})")
-                }
-            } else {
-                Log.d("DilemaAPI", "No se recibieron dilemas")
-            }
+            if (response.success) dilemas = response.data
         } catch (e: Exception) {
-            Log.e("DilemaAPI", "Error al obtener dilemas", e)
+            Log.e("DILEMA_LOAD", "Error cargando dilemas", e)
         } finally {
-            isLoading = false
+            cargandoInicio = false
         }
     }
 
+    // ---------------------------
+    // OBSERVAR PAGINA PARA CARGAR MÁS
+    // ---------------------------
+    LaunchedEffect(dilemas) {
+        snapshotFlow { pagerState.currentPage }
+            .collectLatest { currentPage ->
+                val penultimo = dilemas.size - 2
+                if (dilemas.isNotEmpty() && currentPage >= penultimo && !cargandoMas && !noHayMasDilemas && ultimaPaginaCargada < dilemas.size) {
+                    jobCargarMas?.cancel()
+                    jobCargarMas = scope.launch {
+                        cargandoMas = true
+                        ultimaPaginaCargada = dilemas.size
+                        try {
+                            val nuevosDilemas = apiService.getDilemasUnanswered(userId)
+                            if (nuevosDilemas.success && nuevosDilemas.data.isNotEmpty()) {
+                                dilemas = dilemas + nuevosDilemas.data
+                            } else {
+                                noHayMasDilemas = true
+                            }
+                        } catch (e: Exception) {
+                            Log.e("DILEMA_LOAD", "Error cargando más dilemas", e)
+                        } finally {
+                            cargandoMas = false
+                        }
+                    }
+                }
+            }
+    }
+
+    // ---------------------------
+    // UI
+    // ---------------------------
     Scaffold(bottomBar = { BottomNavigationBar(navController) }) { paddingValues ->
         Box(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
         ) {
-            if (isLoading) {
-                LoadingMoreDilemas {}
+            if (cargandoInicio) {
+                LoadingMoreDilemas()
             } else {
                 VerticalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize(),
-                    userScrollEnabled = puedeHacerScroll.value
+                    userScrollEnabled = respuestas.getOrElse(pagerState.currentPage) { null } != null
                 ) { page ->
-                    if (page < dilemas.size) {
-                        val d = dilemas[page]
+                    val d = dilemas.getOrNull(page)
+                    if (d != null) {
                         DilemaScreenSingle(
                             dilema = Dilema(
                                 id = d.id,
@@ -101,19 +124,24 @@ fun DilemaPagerScreen(navController: NavController, userId: Int) {
                                 categoria = d.categoria
                             ),
                             respuestaGuardada = respuestas[page],
-                            onRespondido = { opcion -> respuestas[page] = opcion }
-                        )
-                    } else {
-                        LoadingMoreDilemas {
-                            scope.launch {
-                                val nuevos = try {
-                                    apiService.getDilemasUnanswered(userId).data.shuffled().take(5)
-                                } catch (e: Exception) {
-                                    emptyList()
-                                }
-                                dilemas = dilemas + nuevos
+                            resultadosGuardados = resultados[d.id],
+                            onRespondido = { opcion ->
+                                respuestas[page] = opcion
+                            },
+                            onResultadoActualizado = { a, b ->
+                                resultados[d.id] = Pair(a, b)
                             }
-                        }
+                        )
+                    }
+                }
+
+                if (cargandoMas) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 32.dp)
+                    ) {
+                        CircularProgressIndicator(color = Color(0xFF4CAF50))
                     }
                 }
             }
@@ -122,9 +150,7 @@ fun DilemaPagerScreen(navController: NavController, userId: Int) {
 }
 
 @Composable
-fun LoadingMoreDilemas(onLoad: () -> Unit) {
-    LaunchedEffect(Unit) { onLoad() }
-
+fun LoadingMoreDilemas() {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -134,7 +160,7 @@ fun LoadingMoreDilemas(onLoad: () -> Unit) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             CircularProgressIndicator(color = Color(0xFF4CAF50))
             Spacer(modifier = Modifier.height(16.dp))
-            Text("Cargando más dilemas...", color = Color.White, fontSize = 18.sp)
+            Text("Cargando dilemas...", color = Color.White, fontSize = 18.sp)
         }
     }
 }

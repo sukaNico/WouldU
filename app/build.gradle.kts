@@ -48,6 +48,7 @@ dependencies {
     implementation("androidx.compose.material3:material3:1.2.0")
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation(libs.androidx.foundation)
+    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.foundation:foundation:1.6.0")

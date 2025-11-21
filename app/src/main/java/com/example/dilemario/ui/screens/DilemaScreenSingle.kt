@@ -1,10 +1,7 @@
 package com.example.dilemario.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animate
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
+import android.util.Log
+import androidx.compose.animation.*
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -21,38 +18,39 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dilemario.model.Dilema
+import kotlinx.coroutines.launch
 
-// --------------------------------------------------------
-// PANTALLA INDIVIDUAL — COMPLETA + ESTADO PERSISTENTE
-// --------------------------------------------------------
+
+// ---------------------------
+// DILEMA SINGLE
+// ---------------------------
 @Composable
 fun DilemaScreenSingle(
     dilema: Dilema,
-    respuestaGuardada: String?,               // ← viene del pager
-    onRespondido: (String) -> Unit            // ← reportamos cuando selecciona
+    respuestaGuardada: String?,
+    resultadosGuardados: Pair<Float, Float>? = null,
+    onRespondido: (String) -> Unit,
+    onResultadoActualizado: (Float, Float) -> Unit
 ) {
-
-    // Estado inicial = lo guardado
+    val scope = rememberCoroutineScope()
     var selectedOption by remember { mutableStateOf(respuestaGuardada) }
+    var votosA by remember { mutableIntStateOf(dilema.votosOpcionA) }
+    var votosB by remember { mutableIntStateOf(dilema.votosOpcionB) }
 
-    // Si el pager nos manda una respuesta que antes no estaba, sincronizamos
+    var porcentajeA by remember { mutableStateOf(resultadosGuardados?.first ?: 0f) }
+    var porcentajeB by remember { mutableStateOf(resultadosGuardados?.second ?: 0f) }
+
     LaunchedEffect(respuestaGuardada) {
         if (respuestaGuardada != null && selectedOption == null) {
             selectedOption = respuestaGuardada
         }
     }
 
-    // Cuando responde por PRIMERA VEZ → reportamos al Pager
     LaunchedEffect(selectedOption) {
         if (selectedOption != null && respuestaGuardada == null) {
             onRespondido(selectedOption!!)
         }
     }
-
-    // Cálculo de porcentajes
-    val total = dilema.votosOpcionA + dilema.votosOpcionB
-    val percentA = if (total > 0) (dilema.votosOpcionA * 100f) / total else 0f
-    val percentB = if (total > 0) (dilema.votosOpcionB * 100f) / total else 0f
 
     Column(
         modifier = Modifier
@@ -60,52 +58,62 @@ fun DilemaScreenSingle(
             .padding(22.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
         Spacer(modifier = Modifier.height(20.dp))
-
-        Text(
-            text = dilema.titulo,
-            fontSize = 26.sp,
-            color = Color.White
-        )
-
+        Text(dilema.titulo, fontSize = 26.sp, color = Color.White)
         Spacer(modifier = Modifier.height(10.dp))
-
-        Text(
-            text = dilema.descripcion,
-            fontSize = 18.sp,
-            color = Color.LightGray
-        )
-
+        Text(dilema.descripcion, fontSize = 18.sp, color = Color.LightGray)
         Spacer(modifier = Modifier.height(40.dp))
 
-        // -------------------------------------------------------
-        // OPCIÓN A
-        // -------------------------------------------------------
         AnswerOption(
             text = dilema.opcionA,
             isSelected = selectedOption == "A",
-            isDisabled = selectedOption != null,
-            onClick = { selectedOption = "A" }
-        )
+            isDisabled = selectedOption != null
+        ) {
+            selectedOption = "A"
+            scope.launch {
+                val resp = RetrofitClient.api.responderDilema(
+                    dilema.id,
+                    mapOf("opcion_elegida" to "A")
+                )
+
+                votosA = resp.data.estadisticas.votos_a
+                votosB = resp.data.estadisticas.votos_b
+
+                val total = votosA + votosB
+                porcentajeA = if (total > 0) (votosA * 100f) / total else 0f
+                porcentajeB = if (total > 0) (votosB * 100f) / total else 0f
+
+                onResultadoActualizado(porcentajeA, porcentajeB)
+            }
+        }
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // -------------------------------------------------------
-        // OPCIÓN B
-        // -------------------------------------------------------
         AnswerOption(
             text = dilema.opcionB,
             isSelected = selectedOption == "B",
-            isDisabled = selectedOption != null,
-            onClick = { selectedOption = "B" }
-        )
+            isDisabled = selectedOption != null
+        ) {
+            selectedOption = "B"
+            scope.launch {
+                val resp = RetrofitClient.api.responderDilema(
+                    dilema.id,
+                    mapOf("opcion_elegida" to "B")
+                )
+
+                votosA = resp.data.estadisticas.votos_a
+                votosB = resp.data.estadisticas.votos_b
+
+                val total = votosA + votosB
+                porcentajeA = if (total > 0) (votosA * 100f) / total else 0f
+                porcentajeB = if (total > 0) (votosB * 100f) / total else 0f
+
+                onResultadoActualizado(porcentajeA, porcentajeB)
+            }
+        }
 
         Spacer(modifier = Modifier.height(40.dp))
 
-        // -------------------------------------------------------
-        // RESULTADOS — SIEMPRE SE MANTIENEN
-        // -------------------------------------------------------
         AnimatedVisibility(
             visible = selectedOption != null,
             enter = fadeIn() + slideInVertically(),
@@ -113,15 +121,12 @@ fun DilemaScreenSingle(
         ) {
             SelectedResult(
                 label = if (selectedOption == "A") dilema.opcionA else dilema.opcionB,
-                percentage = if (selectedOption == "A") percentA else percentB
+                percentage = if (selectedOption == "A") porcentajeA else porcentajeB
             )
         }
     }
 }
 
-// --------------------------------------------------------
-// COMPONENTE: OPCIÓN CON ANIMACIÓN
-// --------------------------------------------------------
 @Composable
 fun AnswerOption(
     text: String,
@@ -129,86 +134,46 @@ fun AnswerOption(
     isDisabled: Boolean,
     onClick: () -> Unit
 ) {
-
-    val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.1f else 1f,
-        animationSpec = tween(300)
-    )
-
-    val alpha by animateFloatAsState(
-        targetValue = if (isDisabled && !isSelected) 0.4f else 1f,
-        animationSpec = tween(300)
-    )
+    val scale by animateFloatAsState(targetValue = if (isSelected) 1.1f else 1f, animationSpec = tween(300))
+    val alpha by animateFloatAsState(targetValue = if (isDisabled && !isSelected) 0.4f else 1f, animationSpec = tween(300))
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(120.dp)
-            .graphicsLayer(
-                scaleX = scale,
-                scaleY = scale
-            )
+            .graphicsLayer(scaleX = scale, scaleY = scale)
             .alpha(alpha)
             .background(
                 color = if (isSelected) Color(0xFF4CAF50) else Color(0xFF303030),
                 shape = RoundedCornerShape(22.dp)
             )
-            .clickable(enabled = !isDisabled) {
-                onClick()
-            }
+            .clickable(enabled = !isDisabled) { onClick() }
             .padding(20.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(text = text, fontSize = 22.sp, color = Color.White)
+        Text(text, fontSize = 22.sp, color = Color.White)
     }
 }
 
-// --------------------------------------------------------
-// COMPONENTE: RESULTADOS
-// --------------------------------------------------------
 @Composable
 fun SelectedResult(label: String, percentage: Float) {
-
     var animated by remember { mutableStateOf(0f) }
 
-    // Solo animar si es la primera vez que se ve
-    LaunchedEffect(Unit) {
-        animate(
+    LaunchedEffect(percentage) {
+        androidx.compose.animation.core.animate(
             initialValue = 0f,
             targetValue = percentage,
             animationSpec = tween(1100)
-        ) { value, _ ->
-            animated = value
-        }
+        ) { value, _ -> animated = value }
     }
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-
-        Text(
-            text = "Resultados",
-            fontSize = 22.sp,
-            color = Color.White
-        )
-
+        Text("Resultados", fontSize = 22.sp, color = Color.White)
         Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = "Tú y el ${animated.toInt()}% de la gente eligieron:",
-            fontSize = 18.sp,
-            color = Color.LightGray
-        )
-
+        Text("Tú y el ${animated.toInt()}% de la gente eligieron:", fontSize = 18.sp, color = Color.LightGray)
         Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = label,
-            fontSize = 22.sp,
-            color = Color(0xFF4CAF50)
-        )
-
+        Text(label, fontSize = 22.sp, color = Color(0xFF4CAF50))
         Spacer(modifier = Modifier.height(20.dp))
-
-        // Barra de porcentaje
         Box(
             modifier = Modifier
                 .fillMaxWidth()
