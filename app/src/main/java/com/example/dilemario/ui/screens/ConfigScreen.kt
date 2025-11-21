@@ -5,17 +5,25 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.datastore.preferences.core.edit
 import androidx.navigation.NavController
+import com.example.dilemario.data.UserPreferences
+import com.example.dilemario.data.dataStore
 import com.example.dilemario.ui.components.BottomNavigationBar
+import kotlinx.coroutines.launch
 
 @Composable
 fun ConfigScreen(navController: NavController) {
 
-    // Variables de opciones básicas
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
     var notificationsEnabled by remember { mutableStateOf(true) }
     var darkModeEnabled by remember { mutableStateOf(true) }
 
@@ -38,7 +46,7 @@ fun ConfigScreen(navController: NavController) {
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 
-            // ----- Opciones básicas -----
+            // ----- Opciones de configuración -----
             SettingToggle(
                 title = "Notificaciones",
                 subtitle = "Activar alertas y actualizaciones",
@@ -55,8 +63,26 @@ fun ConfigScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.weight(1f))
 
+            // ----- Botón Cerrar Sesión -----
             Button(
-                onClick = { /* TODO: cerrar sesión */ },
+                onClick = {
+                    scope.launch {
+                        // Borrar todos los datos de sesión
+                        context.dataStore.edit { prefs ->
+                            prefs.remove(UserPreferences.USER_NAME)
+                            prefs.remove(UserPreferences.USER_EMAIL)
+                            prefs.remove(UserPreferences.USER_AGE)
+                            prefs.remove(UserPreferences.USER_COUNTRY)
+                            prefs.remove(UserPreferences.LOGIN_EMAIL)
+                            prefs.remove(UserPreferences.LOGIN_PASSWORD)
+                        }
+
+                        // Navegar al login y limpiar backstack
+                        navController.navigate("login") {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF4CAF50),
                     contentColor = Color.White
@@ -81,7 +107,8 @@ fun SettingToggle(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 10.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Column {
             Text(title, color = Color.White, fontSize = 18.sp)

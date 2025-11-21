@@ -5,6 +5,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,6 +25,9 @@ import kotlinx.coroutines.launch
 // ---------------------------
 // DILEMA SINGLE
 // ---------------------------
+// ---------------------------
+// DILEMA SINGLE CON COLORES CONSISTENTES
+// ---------------------------
 @Composable
 fun DilemaScreenSingle(
     dilema: Dilema,
@@ -41,21 +45,18 @@ fun DilemaScreenSingle(
     var porcentajeB by remember { mutableStateOf(resultadosGuardados?.second ?: 0f) }
 
     LaunchedEffect(respuestaGuardada) {
-        if (respuestaGuardada != null && selectedOption == null) {
-            selectedOption = respuestaGuardada
-        }
+        if (respuestaGuardada != null && selectedOption == null) selectedOption = respuestaGuardada
     }
 
     LaunchedEffect(selectedOption) {
-        if (selectedOption != null && respuestaGuardada == null) {
-            onRespondido(selectedOption!!)
-        }
+        if (selectedOption != null && respuestaGuardada == null) onRespondido(selectedOption!!)
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(22.dp),
+            .padding(22.dp)
+            .background(Color(0xFF202020)), // fondo negro
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(20.dp))
@@ -75,14 +76,11 @@ fun DilemaScreenSingle(
                     dilema.id,
                     mapOf("opcion_elegida" to "A")
                 )
-
                 votosA = resp.data.estadisticas.votos_a
                 votosB = resp.data.estadisticas.votos_b
-
                 val total = votosA + votosB
                 porcentajeA = if (total > 0) (votosA * 100f) / total else 0f
                 porcentajeB = if (total > 0) (votosB * 100f) / total else 0f
-
                 onResultadoActualizado(porcentajeA, porcentajeB)
             }
         }
@@ -100,14 +98,11 @@ fun DilemaScreenSingle(
                     dilema.id,
                     mapOf("opcion_elegida" to "B")
                 )
-
                 votosA = resp.data.estadisticas.votos_a
                 votosB = resp.data.estadisticas.votos_b
-
                 val total = votosA + votosB
                 porcentajeA = if (total > 0) (votosA * 100f) / total else 0f
                 porcentajeB = if (total > 0) (votosB * 100f) / total else 0f
-
                 onResultadoActualizado(porcentajeA, porcentajeB)
             }
         }
@@ -134,8 +129,14 @@ fun AnswerOption(
     isDisabled: Boolean,
     onClick: () -> Unit
 ) {
-    val scale by animateFloatAsState(targetValue = if (isSelected) 1.1f else 1f, animationSpec = tween(300))
-    val alpha by animateFloatAsState(targetValue = if (isDisabled && !isSelected) 0.4f else 1f, animationSpec = tween(300))
+    val scale by animateFloatAsState(
+        targetValue = if (isSelected) 1.05f else 1f,
+        animationSpec = tween(300)
+    )
+    val alpha by animateFloatAsState(
+        targetValue = if (isDisabled && !isSelected) 0.6f else 1f,
+        animationSpec = tween(300)
+    )
 
     Box(
         modifier = Modifier
@@ -147,8 +148,13 @@ fun AnswerOption(
                 color = if (isSelected) Color(0xFF4CAF50) else Color(0xFF303030),
                 shape = RoundedCornerShape(22.dp)
             )
+            .border(
+                width = 2.dp,
+                color = if (isSelected) Color(0xFF4CAF50) else Color(0xFF4CAF50),
+                shape = RoundedCornerShape(22.dp)
+            )
             .clickable(enabled = !isDisabled) { onClick() }
-            .padding(20.dp),
+            .padding(horizontal = 20.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(text, fontSize = 22.sp, color = Color.White)
@@ -178,7 +184,7 @@ fun SelectedResult(label: String, percentage: Float) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(20.dp)
-                .background(Color.DarkGray, RoundedCornerShape(10.dp))
+                .background(Color(0xFF303030), RoundedCornerShape(10.dp))
         ) {
             Box(
                 modifier = Modifier

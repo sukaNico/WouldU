@@ -12,7 +12,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -96,7 +98,10 @@ fun DilemaPagerScreen(navController: NavController, userId: Int) {
     // ---------------------------
     // UI
     // ---------------------------
-    Scaffold(bottomBar = { BottomNavigationBar(navController) }) { paddingValues ->
+    Scaffold(
+        bottomBar = { BottomNavigationBar(navController) },
+        containerColor = Color(0xFF202020) // Fondo negro general
+    ) { paddingValues ->
         Box(
             modifier = Modifier
                 .padding(paddingValues)
@@ -125,12 +130,8 @@ fun DilemaPagerScreen(navController: NavController, userId: Int) {
                             ),
                             respuestaGuardada = respuestas[page],
                             resultadosGuardados = resultados[d.id],
-                            onRespondido = { opcion ->
-                                respuestas[page] = opcion
-                            },
-                            onResultadoActualizado = { a, b ->
-                                resultados[d.id] = Pair(a, b)
-                            }
+                            onRespondido = { opcion -> respuestas[page] = opcion },
+                            onResultadoActualizado = { a, b -> resultados[d.id] = Pair(a, b) }
                         )
                     }
                 }

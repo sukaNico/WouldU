@@ -82,6 +82,25 @@ data class DilemaApiResponse(
     val data: DilemaApi
 )
 
+data class RegisterRequest(
+    val nombre: String,
+    val email: String,
+    val password: String,
+    val edad_rango: String,
+    val pais: String
+)
+
+data class RegisterData(
+    val user: UserData,
+    val token: String
+)
+
+data class RegisterResponse(
+    val success: Boolean,
+    val message: String,
+    val data: RegisterData?
+)
+
 // ----------------------------
 // API SERVICE
 // ----------------------------
@@ -92,6 +111,12 @@ interface ApiService {
     suspend fun login(
         @Body request: LoginRequest
     ): LoginResponse
+
+    // REGISTER
+    @POST("api/register")
+    suspend fun register(
+        @Body request: RegisterRequest
+    ): RegisterResponse
 
     @GET("api/dilemas/{userId}/unanswered")
     suspend fun getDilemasUnanswered(@Path("userId") userId: Int): DilemaListResponse

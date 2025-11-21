@@ -4,6 +4,7 @@ import android.util.Base64
 import android.util.Log
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -65,7 +66,9 @@ fun AppNavigation(navController: NavHostController) {
         }
 
         composable("crearCuenta") {
-            CreateAccountScreen(onRegister = {}, onBack = { navController.popBackStack() })
+            CreateAccountScreen(
+                navController = navController
+            )
         }
 
         composable("config") { ConfigScreen(navController) }
