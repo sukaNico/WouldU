@@ -1,119 +1,109 @@
-# wouldU - El Dilemario Interactivo
+# WouldU - Interactive Dilemmas App
 
-**wouldU** es un juego interactivo de dilemas éticos y decisiones, diseñado para que los usuarios exploren situaciones complejas, tomen decisiones y reflexionen sobre las consecuencias de sus elecciones. Cada partida genera un análisis de las elecciones del jugador, ayudando a comprender estilos de pensamiento y valores personales.
+🔗 Backend Link
 
----
+The app communicates with a backend API to manage user data and dilemmas. You can find the backend repository here.
+Make sure the backend server is running and configured correctly before using the app.
+URL: https://github.com/Jesusda11/WouldU-backend
 
-## 🎯 Características
-
-* **Dilemas interactivos**: Presenta situaciones éticas y cotidianas donde el usuario debe tomar decisiones.
-* **Sistema de consecuencias**: Cada elección influye en el desarrollo de la historia y en posibles resultados.
-* **Análisis de decisiones**: Permite observar patrones de pensamiento, estilos de resolución de problemas y valores.
-* **Interfaz amigable**: Diseño intuitivo y atractivo para facilitar la participación del usuario.
-* **Expansible**: Permite añadir nuevos dilemas y rutas de decisión fácilmente.
+**WouldU** is an interactive Android application that allows users to explore ethical dilemmas, make decisions, and reflect on their choices. The app provides a complete navigation system, user management, dilemma creation and editing, and decision analysis.
 
 ---
 
-## 💻 Tecnologías
+## 🎯 Features
 
-* **Frontend:** HTML5, CSS3, JavaScript (opcional: frameworks como React o Vue)
-* **Backend:** Python / Node.js / cualquier backend elegido para manejo de datos (opcional)
-* **Base de datos:** SQLite / MongoDB / JSON (según implementación)
-* **Otras librerías:** Dependiendo de la versión, podría incluir librerías para análisis de decisiones o visualización de resultados.
-
----
-
-## 🚀 Instalación
-
-1. Clona este repositorio:
-
-   ```bash
-   git clone https://github.com/tuusuario/wouldU.git
-   ```
-2. Entra en la carpeta del proyecto:
-
-   ```bash
-   cd wouldU
-   ```
-3. Instala dependencias (si aplica):
-
-   ```bash
-   npm install   # Para proyecto con Node.js
-   pip install -r requirements.txt  # Para proyecto con Python
-   ```
-4. Ejecuta el proyecto:
-
-   ```bash
-   npm start   # Node.js / frontend
-   python main.py   # Python
-   ```
+* **Interactive dilemmas**: Explore ethical and everyday situations.
+* **User management**: Registration, login, and user profile.
+* **Dilemma administration**: Create, edit, and delete dilemmas (admin screens).
+* **Feed and detail views**: Browse recent dilemmas and view individual details.
+* **App configuration**: User-customizable settings.
+* **Modern interface**: Built with Jetpack Compose and Material3.
+* **Persistence**: User preferences stored using DataStore.
+* **Server communication**: Retrofit for API calls and JWT handling.
 
 ---
 
-## 🕹️ Cómo jugar
-
-1. Abre la aplicación en tu navegador o ejecuta el script principal.
-2. Lee el dilema presentado.
-3. Selecciona una de las opciones disponibles.
-4. Observa las consecuencias y el análisis de tu decisión.
-5. Continúa explorando nuevos dilemas y decisiones.
-
----
-
-## 📂 Estructura del Proyecto
+## 📂 Project Structure
 
 ```
-wouldU/
+app/
 │
-├─ src/             # Código fuente
-│  ├─ frontend/     # Archivos de interfaz
-│  └─ backend/      # Lógica del juego y análisis
+├─ manifests/
 │
-├─ dilemmas/        # Base de datos o JSON con dilemas
-├─ assets/          # Imágenes, íconos y recursos multimedia
-├─ README.md        # Documentación del proyecto
-└─ LICENSE          # Licencia
+├─ java/com/example/WouldU/
+│   ├─ data/
+│   │   ├─ ApiService.kt
+│   │   ├─ RetrofitClient.kt
+│   │   └─ UserPreferences.kt
+│   ├─ model/
+│   │   ├─ Dilema.kt
+│   │   └─ ProfileViewModel.kt
+│   ├─ ui/
+│   │   ├─ components/
+│   │   │   └─ BottomNavigationBar.kt
+│   │   ├─ screens/
+│   │   │   ├─ AdminDilemasScreen.kt
+│   │   │   ├─ ConfigScreen.kt
+│   │   │   ├─ CreateAccountScreen.kt
+│   │   │   ├─ CreateDilemmaScreen.kt
+│   │   │   ├─ DilemaPagerScreen.kt
+│   │   │   ├─ DilemaScreenSingle.kt
+│   │   │   ├─ EditDilemasScreen.kt
+│   │   │   ├─ LoginScreen.kt
+│   │   │   ├─ ProfileScreen.kt
+│   │   │   └─ SplashScreen.kt
+│   │   └─ theme/
+│   │       └─ AppNavigation.kt
+│   ├─ util/
+│   └─ MainActivity.kt
+```
+## 💻 Technologies and Dependencies
+
+* **Language:** Kotlin
+* **UI:** Jetpack Compose, Material3
+* **Navigation:** Navigation Compose
+* **Persistence:** DataStore Preferences
+* **Network:** Retrofit, OkHttp Logging Interceptor
+* **Compatibility:** Min SDK 26, Target SDK 34, Compile SDK 36
+* **Other libraries:** Foundation, Activity Compose, UI Tooling Preview
+
+**Key dependencies:**
+
+```kotlin
+implementation(platform("androidx.compose:compose-bom:2024.10.00"))
+implementation("androidx.compose.ui:ui")
+implementation("androidx.datastore:datastore-preferences:1.1.1")
+implementation("com.squareup.retrofit2:retrofit:2.9.0")
+implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+implementation("androidx.navigation:navigation-compose:2.8.3")
+implementation("androidx.compose.material3:material3:1.2.0")
+implementation("androidx.activity:activity-compose:1.9.3")
+implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
 ```
 
 ---
 
-## 🤝 Contribución
+## 🚀 Installation
 
-¡Contribuciones son bienvenidas!
-Si quieres agregar dilemas, mejorar la interfaz o proponer mejoras:
+1. Clone the repository:
 
-1. Haz un fork del repositorio.
-2. Crea una nueva rama:
+```bash
+git clone https://github.com/yourusername/WouldU.git
+```
 
-   ```bash
-   git checkout -b feature/nueva-funcionalidad
-   ```
-3. Realiza tus cambios y haz commit:
-
-   ```bash
-   git commit -m "Agrega nueva funcionalidad"
-   ```
-4. Envía un pull request.
+2. Open the project in **Android Studio**.
+3. Set up SDK 36 and Kotlin 1.9+.
+4. Sync Gradle dependencies.
+5. Run the app on an emulator or physical device.
 
 ---
 
-## 📜 Licencia
+## 🕹️ Usage
 
-Este proyecto está bajo la licencia **MIT**.
-Puedes ver más en el archivo [LICENSE](LICENSE).
+1. Launch the app.
+2. Register or log in with an existing account.
+3. Explore dilemmas in the **feed** or via the **pager**.
+4. Select a dilemma to view details and make decisions.
+5. If you are an admin, you can create or edit dilemmas from the admin screen.
 
----
 
-## 🌟 Futuras mejoras
-
-* Sistema de puntuación basado en decisiones.
-* Estadísticas de estilo de pensamiento y ética del usuario.
-* Expansión con más dilemas categorizados por temática.
-* Integración con una interfaz web responsiva y móvil.
-
----
-
-## 📫 Contacto
-
-Para dudas o sugerencias: **[tuemail@dominio.com](mailto:tuemail@dominio.com)**
-Síguenos en GitHub: [https://github.com/tuusuario](https://github.com/tuusuario)
